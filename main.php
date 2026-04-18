@@ -139,7 +139,7 @@ function sunny_wordpress_cleaner_page() {
     </form>
 <?php
     } else {
-        echo '<div class="notice notice-info"><p>ยินดีด้วย! ไม่พบ User สแปมในระบบแล้ว</p></div>';
+        echo '<h2>✅ ยินดีด้วย! ไม่พบ User สแปมในระบบแล้ว</h2>';
     }
     echo '</div>';
 ?>
