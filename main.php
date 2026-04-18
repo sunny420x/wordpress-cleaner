@@ -38,7 +38,6 @@ function sunny_wordpress_cleaner_page() {
     if ( isset($_POST['clean_stats']) ) {
         check_admin_referer('wcc_clean_stats');
 
-        // ใช้ท่า JOIN เพื่อความเร็วในการจัดการ 3.8 แสนแถว
         $deleted = $wpdb->query(
             "DELETE r FROM $table_relationships r
              LEFT JOIN $table_visitor v ON r.visitor_id = v.ID
@@ -56,7 +55,7 @@ function sunny_wordpress_cleaner_page() {
         <p>ลบข้อมูลความสัมพันธ์ในตาราง <code><?= $table_relationships ?></code> ที่ไม่มีข้อมูลผู้เข้าชมตัวจริงแล้ว</p>
         
         <?php
-        // เช็คจำนวนขยะก่อนลบ เพื่อให้พี่เห็นตัวเลข 3.8 แสนนั้น
+        // เช็คจำนวนขยะก่อนลบ
         $junk_count = $wpdb->get_var(
             "SELECT COUNT(*) FROM $table_relationships r
              LEFT JOIN $table_visitor v ON r.visitor_id = v.ID
