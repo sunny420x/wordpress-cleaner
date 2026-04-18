@@ -14,7 +14,15 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 add_action( 'admin_menu', 'sunny_wordpress_cleaner_menu' );
 
 function sunny_wordpress_cleaner_menu() {
-    add_management_page( 'Sunny\'s Wordpress Cleaner', 'ระบบช่วยลบขยะบน Wordpress', 'manage_options', 'spam-cleaner', 'sunny_wordpress_cleaner_page' );
+    add_menu_page(
+        'Sunny\'s Wordpress Cleaner', // Title ของหน้า
+        'ระบบช่วยลบขยะบน Wordpress', // ชื่อเมนูที่โชว์ในแถบข้าง
+        'manage_options', //สิทธิ์การเข้าถึง (Admin)
+        'spam-cleaner', // Slug ของหน้า
+        'sunny_wordpress_cleaner_page', // ฟังก์ชันที่ใช้พ่น HTML หน้า Setting
+        'dashicons-admin-tools', // ไอคอน
+        '80' // ตำแหน่งเมนู
+    );
 }
 
 function sunny_wordpress_cleaner_page() {
