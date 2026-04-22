@@ -218,3 +218,87 @@ add_action('admin_init', 'sunny_cleanner_settings_init');
 function sunny_cleanner_settings_init() {
     register_setting('sunny_cleanner_settings_group', 'sunny_cleanner_blacklist');
 }
+
+//Widget
+add_action('wp_dashboard_setup', function() {
+    wp_add_dashboard_widget(
+        'wgc_db_cleanup_widget', 
+        'สรุปขยะสะสมใน Database', 
+        'wgc_render_db_cleanup_widget'
+    );
+});
+
+function wgc_render_db_cleanup_widget() {
+
+    $cached_data = get_transient('wgc_db_health_stats');
+
+    if ( false === $cached_data ) {
+        global $wpdb;
+    
+        // กำหนดชื่อตาราง (ปรับให้ตรงกับที่พี่ใช้นะครับ)
+        $table_visitor = $wpdb->prefix . 'statistics_visitor';
+        $table_relationships = $wpdb->prefix . 'statistics_relationships';
+        $table_pages_visitor = $wpdb->prefix . 'statistics_pages';
+
+        // 1. เช็คขยะความสัมพันธ์ (Orphaned Data)
+        $junk_rel_count = $wpdb->get_var( "
+            SELECT COUNT(*) FROM $table_relationships r
+            LEFT JOIN $table_visitor v ON r.visitor_id = v.ID
+            WHERE v.ID IS NULL
+        " );
+
+        // 2. เช็คสถิติเก่าค้างปี
+        $current_year_start = date('Y') . '-01-01';
+        $junk_visit_count = $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM $table_pages_visitor WHERE date < %s", 
+            $current_year_start
+        ) );
+
+        $cached_data = [
+            'rel' => $junk_rel_count,
+            'visit' => $junk_visit_count,
+            'time' => current_time('mysql')
+        ];
+
+        // 3. บันทึกเก็บไว้ใน Cache 12 ชั่วโมง
+        set_transient('wgc_db_health_stats', $cached_data, 12 * HOUR_IN_SECONDS);
+    }
+
+    $total_junk = $cached_data['rel'] + $cached_data['visit'];
+    ?>
+
+    <div style="padding: 5px 0;">    
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #ccc;">
+            <span>ขยะความสัมพันธ์:</span>
+            <strong><?=number_format($cached_data['rel'])?> แถว</strong>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+            <span>สถิติเก่า (ก่อนปี <?=date('Y')?>):</span>
+            <strong><?=number_format($cached_data['visit'])?> แถว</strong>
+        </div>
+
+        <small>อัปเดตล่าสุดเมื่อ: <?=$cached_data['time']?></small>
+
+        <br><br>
+
+    <?php
+    // สรุปสถานะ
+    if ($total_junk > 0) {
+        $color = ($total_junk > 100000) ? '#E94C3D' : '#E67E22'; // ถ้าเกินแสนแถวให้ขึ้นสีชมพูเข้ม
+    ?>
+        <div style="background: <?=$color?>; color: #fff; padding: 10px; border-radius: 4px; text-align: center; margin-bottom: 15px;">
+        <span style="font-size: 16px; font-weight: bold;">รวมขยะสะสม: <?=number_format($total_junk);?> แถว</span>
+        </div>
+        
+        <a href="<?=admin_url('admin.php?page=spam-cleaner');?>" class="button button-primary" style="width: 100%; text-align: center; height: 36px; line-height: 34px;">เริ่มทำความสะอาด !</a>;
+    <?php } else { ?>
+        <div style="background: #26AE60; color: #fff; padding: 10px; border-radius: 4px; text-align: center;">
+            <strong>ฐานข้อมูลสะอาดกริบ !</strong>
+        </div>
+    <?php
+    }
+    ?>
+
+    </div>
+<?php } ?>
