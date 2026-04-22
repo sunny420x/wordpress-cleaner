@@ -1,4 +1,4 @@
-<img width="1721" height="791" alt="image" src="https://github.com/user-attachments/assets/47ae6fdc-43a1-4abd-894f-4f6e40f6fc19" />
+<img width="1718" height="870" alt="image" src="https://github.com/user-attachments/assets/5c3ca780-692b-4559-89e3-aa3721b965d3" />
 
 # Sunny's Wordpress Cleaner #
 
