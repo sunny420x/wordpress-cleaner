@@ -33,7 +33,6 @@ function sunny_wordpress_cleaner_page() {
     $table_pages_visitor = $wpdb->prefix . 'statistics_pages';
 
     echo '<div class="wrap">';
-    echo '<h1>Sunny\' Wordpress Maintenance Tool</h1>';
 
     // --- ส่วนที่ 1: จัดการล้างข้อมูลสถิติ (Stats Junk) ---
     if ( isset($_POST['clean_stats']) ) {
@@ -73,7 +72,7 @@ function sunny_wordpress_cleaner_page() {
     ?>
     <div class="stats-cleaner-section" style="background: #fff; padding: 20px; border-radius: 10px; margin-top: 20px;">
         <h1>📊 สถิติฐานข้อมูล (Database Maintenance)</h1>
-        <p>ลบข้อมูลความสัมพันธ์ในตาราง <code><?= $table_relationships ?></code> ที่ไม่มีข้อมูลผู้เข้าชมตัวจริงแล้ว</p>
+        <p>ลบข้อมูลความสัมพันธ์ในตาราง <code><?= $table_relationships ?></code> ที่ไม่มีข้อมูลผู้เข้าชมตัวจริง</p>
         
         <?php
         // เช็คจำนวนขยะก่อนลบ
@@ -96,7 +95,9 @@ function sunny_wordpress_cleaner_page() {
                    onclick="return confirm('ล้างข้อมูลเลยไหม ?');"
                    <?= ($junk_count == 0) ? 'disabled' : '' ?>>
         </form>
-        
+
+        <p>ลบข้อมูลสถิติการเข้าชมในตาราง <code><?= $table_pages_visitor ?></code> ที่เก่ากว่าปี <?=date('Y')?></p>
+
         <p>ตรวจพบข้อมูลการเข้าชมที่เก่ากว่าปี <?=date('Y')?>: <strong style="color:red; font-size: 1.2em;"><?= number_format($junk_visit_count) ?></strong> แถว</p>
         <form method="post">
             <?php wp_nonce_field('do_clean_stats'); ?>
@@ -107,6 +108,8 @@ function sunny_wordpress_cleaner_page() {
         </form>
     </div>
     <div style="background: #fff; padding: 20px; border-radius: 10px; margin-top: 20px;">
+    <h1>👥 ผู้ใช้ที่เข้าข่ายสแปม (Spam Users)</h1>
+    <p>ตรวจสอบผู้ใช้ที่เข้าข่ายสแปม เช่น ผู้ใช้ที่ตั้งชื่อเพื่อโปรโมทเว็บไซต์ภายนอก สามารถจัดการคำที่เข้าข่ายได้ใน Blacklist</p>
     <?php
     $spam_words = explode("\n", get_option('sunny_cleanner_blacklist', "cash\nmoney\nbonus\noffer\nprize\nblogspot"));
     $spam_words = array_map('trim', $spam_words);
@@ -141,7 +144,6 @@ function sunny_wordpress_cleaner_page() {
 
     if ( !empty($found_users) ) {
     ?>
-    <h1>ผู้ใช้สแปม (Spam Users)</h1>
     <h3>พบ User ที่เข้าข่ายสแปม <?=count($found_users);?> รายชื่อ</h3>
     <table class="wp-list-table widefat fixed striped">
         <thead>
@@ -184,7 +186,7 @@ function sunny_wordpress_cleaner_page() {
     echo '</div>';
 ?>
     <div style="background: #fff; padding: 20px; border-radius: 10px; margin-top: 20px;">
-        <h1>ตั้งค่าปลั้กอิน (Plugin Setting)</h1>
+        <h1>⚙️ ตั้งค่าปลั้กอิน (Plugin Setting)</h1>
         <form action="options.php" method="post">
             <?php
             settings_fields('sunny_cleanner_settings_group');
