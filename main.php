@@ -30,6 +30,7 @@ function sunny_wordpress_cleaner_page() {
 
     $table_relationships = $wpdb->prefix . 'statistics_visitor_relationships';
     $table_visitor = $wpdb->prefix . 'statistics_visitor';
+    $table_pages_visitor = $wpdb->prefix . 'statistics_pages';
 
     echo '<div class="wrap">';
     echo '<h1>Sunny\' Wordpress Maintenance Tool</h1>';
@@ -49,6 +50,26 @@ function sunny_wordpress_cleaner_page() {
 
         echo '<div class="updated"><p>กวาดขยะสถิติออกไปได้ <strong>' . number_format($deleted) . '</strong> แถว และคืนพื้นที่ฐานข้อมูลเรียบร้อย!</p></div>';
     }
+
+    if ( isset($_POST['clean_pages_stats']) ) {
+        check_admin_referer('do_clean_stats');
+
+        // คำนวณวันแรกของปีปัจจุบัน (เช่น 2026-01-01)
+        $first_day_of_year = date('Y') . '-01-01';
+
+        // ลบโดยใช้ Index (เร็วกว่าการใช้ฟังก์ชัน YEAR() ครอบ column)
+        $deleted = $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM $table_pages_visitor WHERE date < %s",
+                $first_day_of_year
+            )
+        );
+
+        // Optimize ตาราง (ตัวนี้แหละที่อาจจะใช้เวลาหน่อย ถ้าตารางใหญ่มาก)
+        $wpdb->query("OPTIMIZE TABLE $table_pages_visitor");
+
+        echo '<div class="updated"><p>กวาดสถิติเก่าก่อนปี ' . date('Y') . ' ออกไปได้ <strong>' . number_format($deleted) . '</strong> แถวเรียบร้อยแล้วครับพี่!</p></div>';
+    }
     ?>
     <div class="stats-cleaner-section" style="background: #fff; padding: 20px; border-radius: 10px; margin-top: 20px;">
         <h1>📊 สถิติฐานข้อมูล (Database Maintenance)</h1>
@@ -61,16 +82,28 @@ function sunny_wordpress_cleaner_page() {
              LEFT JOIN $table_visitor v ON r.visitor_id = v.ID
              WHERE v.ID IS NULL"
         );
+
+        $junk_visit_count = $wpdb->get_var(
+            $wpdb->prepare("SELECT COUNT(*) FROM $table_pages_visitor WHERE date < %s", date('Y') . '-01-01')
+        );
         ?>
         
-        <p>ตรวจพบข้อมูลขยะค้างค้าง: <strong style="color:red; font-size: 1.2em;"><?= number_format($junk_count) ?></strong> แถว</p>
-        
+        <p>ตรวจพบข้อมูลขยะ: <strong style="color:red; font-size: 1.2em;"><?= number_format($junk_count) ?></strong> แถว</p>
         <form method="post">
             <?php wp_nonce_field('wcc_clean_stats'); ?>
             <input type="submit" name="clean_stats" class="button button-secondary" 
                    value="ล้างขยะสถิติและ Optimize ตาราง" 
                    onclick="return confirm('ล้างข้อมูลเลยไหม ?');"
                    <?= ($junk_count == 0) ? 'disabled' : '' ?>>
+        </form>
+        
+        <p>ตรวจพบข้อมูลการเข้าชมที่เก่ากว่าปี <?=date('Y')?>: <strong style="color:red; font-size: 1.2em;"><?= number_format($junk_visit_count) ?></strong> แถว</p>
+        <form method="post">
+            <?php wp_nonce_field('do_clean_stats'); ?>
+            <input type="submit" name="clean_pages_stats" class="button button-secondary" 
+                   value="ล้างขยะสถิติการเข้าชมและ Optimize ตาราง" 
+                   onclick="return confirm('ล้างข้อมูลเลยไหม ?');"
+                   <?= ($junk_visit_count == 0) ? 'disabled' : '' ?>>
         </form>
     </div>
     <div style="background: #fff; padding: 20px; border-radius: 10px; margin-top: 20px;">
