@@ -205,6 +205,15 @@ function sunny_wordpress_cleaner_page() {
                             <textarea name="sunny_cleanner_blacklist" style="width: 500px; height: 200px;"><?php echo esc_attr(get_option('sunny_cleanner_blacklist', "cash\nmoney\nbonus\noffer\nprize\nblogspot")); ?></textarea>
                         </td>
                     </tr>
+                    <tr>
+                        <td><strong>ปิดใช้งานการติดต่อ API ภายนอก</strong> *การเปิดใช้งานจะไม่สามารถติดตั้งปลั้กอินใหม่ได้</td>
+                        <td>
+                            <select name="sunny_cleanner_disable_external_api" id="">
+                                <option value="yes" <?php if(get_option('sunny_cleanner_disable_external_api', 'no') == "yes") { echo "selected";} ?>>ป้องกันติดต่อ API ภายนอก</option>
+                                <option value="no" <?php if(get_option('sunny_cleanner_disable_external_api', 'no') == "no") { echo "selected";} ?>>ยอมเปิดติดต่อ API ภายนอก</option>
+                            </select>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
             <?php submit_button('บันทึกการเปลี่ยนแปลง'); ?>
@@ -217,6 +226,7 @@ add_action('admin_init', 'sunny_cleanner_settings_init');
 
 function sunny_cleanner_settings_init() {
     register_setting('sunny_cleanner_settings_group', 'sunny_cleanner_blacklist');
+    register_setting('sunny_cleanner_settings_group', 'sunny_cleanner_disable_external_api');
 }
 
 //Widget
@@ -301,4 +311,34 @@ function wgc_render_db_cleanup_widget() {
     ?>
 
     </div>
-<?php } ?>
+<?php
+} 
+
+/**
+ * Block External API Requests to WordPress.org for WooCommerce Info
+ */
+add_filter( 'pre_http_request', function( $pre, $args, $url ) {
+    // 1. เช็คว่าอยู่ในหน้า Admin ที่ต้องใช้ API หรือเปล่า?
+    if ( is_admin() ) {
+        global $pagenow;
+        // รายชื่อหน้าที่ "ห้ามบล็อก" เพราะต้องใช้เชื่อมต่อ WordPress.org
+        $allowed_pages = array(
+            'plugin-install.php', 
+            'update-core.php', 
+            'plugins.php', 
+            'theme-install.php'
+        );
+
+        if ( in_array( $pagenow, $allowed_pages ) ||  get_option('sunny_cleanner_disable_external_api', 'no') == "no") {
+            return $pre; // ปล่อยให้ผ่านไปได้ ปกติ
+        }
+    }
+
+    // 2. ถ้าไม่ใช่หน้าด้านบน และมีการยิงไปหา api.wordpress.org หรือ woocommerce.json ให้บล็อกทันที
+    if ( strpos( $url, 'api.wordpress.org' ) !== false || strpos( $url, 'woocommerce.json' ) !== false ) {
+        return new WP_Error( 'http_request_failed', 'Blocked for speed optimization!' );
+    }
+
+    return $pre;
+}, 10, 3 );
+?>
