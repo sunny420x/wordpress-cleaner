@@ -15,17 +15,17 @@ add_action( 'admin_menu', 'sunny_wordpress_cleaner_menu' );
 
 function sunny_wordpress_cleaner_menu() {
     add_menu_page(
-        'Sunny\'s Wordpress Cleaner', // Title ของหน้า
-        'ระบบช่วยลบขยะบน Wordpress', // ชื่อเมนูที่โชว์ในแถบข้าง
+        'Sunny\'s Wordpress Optimizer', // Title ของหน้า
+        'Wordpress Optimizer', // ชื่อเมนูที่โชว์ในแถบข้าง
         'manage_options', //สิทธิ์การเข้าถึง (Admin)
-        'spam-cleaner', // Slug ของหน้า
-        'sunny_wordpress_cleaner_page', // ฟังก์ชันที่ใช้พ่น HTML หน้า Setting
+        'wordpress-optimizer', // Slug ของหน้า
+        'sunny_wordpress_optimizer_page', // ฟังก์ชันที่ใช้พ่น HTML หน้า Setting
         'dashicons-admin-tools', // ไอคอน
         '80' // ตำแหน่งเมนู
     );
 }
 
-function sunny_wordpress_cleaner_page() {
+function sunny_wordpress_optimizer_page() {
     global $wpdb;
 
     $table_relationships = $wpdb->prefix . 'statistics_visitor_relationships';
@@ -189,7 +189,7 @@ function sunny_wordpress_cleaner_page() {
         <h1>⚙️ ตั้งค่าปลั้กอิน (Plugin Setting)</h1>
         <form action="options.php" method="post">
             <?php
-            settings_fields('sunny_cleanner_settings_group');
+            settings_fields('sunny_optimizer_settings_group');
             ?>
             <table class="wp-list-table widefat fixed striped" style="margin-top: 20px;">
                 <thead>
@@ -206,7 +206,7 @@ function sunny_wordpress_cleaner_page() {
                         </td>
                     </tr>
                     <tr>
-                        <td><strong>ปิดใช้งานการติดต่อ API ภายนอก</strong> *การเปิดใช้งานจะไม่สามารถติดตั้งปลั้กอินใหม่ได้</td>
+                        <td><strong>ปิดใช้งานการติดต่อ API ภายนอก</strong> *ต้องปิดใช้งานฟีเจอร์นี้ชั่วคราว จึงจะสามารถติดตั้งปลั้กอินใหม่ได้</td>
                         <td>
                             <select name="sunny_cleanner_disable_external_api" id="">
                                 <option value="yes" <?php if(get_option('sunny_cleanner_disable_external_api', 'no') == "yes") { echo "selected";} ?>>ป้องกันติดต่อ API ภายนอก</option>
@@ -222,11 +222,11 @@ function sunny_wordpress_cleaner_page() {
 <?php
 }
 
-add_action('admin_init', 'sunny_cleanner_settings_init');
+add_action('admin_init', 'sunny_optimizer_settings_init');
 
-function sunny_cleanner_settings_init() {
-    register_setting('sunny_cleanner_settings_group', 'sunny_cleanner_blacklist');
-    register_setting('sunny_cleanner_settings_group', 'sunny_cleanner_disable_external_api');
+function sunny_optimizer_settings_init() {
+    register_setting('sunny_optimizer_settings_group', 'sunny_cleanner_blacklist');
+    register_setting('sunny_optimizer_settings_group', 'sunny_cleanner_disable_external_api');
 }
 
 //Widget
