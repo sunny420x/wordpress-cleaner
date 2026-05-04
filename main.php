@@ -1,11 +1,11 @@
 <?php
 /**
- * Plugin Name: Sunny's Wordpress Cleaner
- * Description: ลบ User ที่มีคำสแปมใน Display Name เช่น cash, money, bonus และล้างข้อมูลสถิติที่เป็นขยะ (ไม่มีความสัมพันธ์กับตารางอื่น)
+ * Plugin Name: Sunny's Wordpress Optimizer
+ * Description: เปิด API Calls ที่ใช้เวลานาน ลบ User ที่มีคำสแปมใน Display Name เช่น cash, money, bonus และล้างข้อมูลสถิติที่เป็นขยะ (ไม่มีความสัมพันธ์กับตารางอื่น)
  * Version: 1.0
  * Author: Jirakit Pawnsakunrungrot
  * Author URI: https://www.linkedin.com/in/sunny-jirakit
- * Plugin URI: https://github.com/sunny420x/wordpress-cleaner
+ * Plugin URI: https://github.com/sunny420x/wordpress-optimizer
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
@@ -341,4 +341,12 @@ add_filter( 'pre_http_request', function( $pre, $args, $url ) {
 
     return $pre;
 }, 10, 3 );
-?>
+
+add_filter( 'pre_http_request', function( $pre, $args, $url ) {
+    if( get_option('sunny_cleanner_disable_external_api', 'no') == "yes") {
+        if ( strpos( $url, 'api.wordpress.org/plugins/info' ) !== false && strpos( $url, 'woocommerce' ) !== false ) {
+            return new WP_Error( 'blocked_request', 'Force blocked for speed', array( 'status' => 403 ) );
+        }
+    }
+    return $pre;
+}, 10, 3 );
