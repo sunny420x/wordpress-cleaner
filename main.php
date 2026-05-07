@@ -34,7 +34,6 @@ function sunny_wordpress_optimizer_page() {
 
     echo '<div class="wrap">';
 
-    // --- ส่วนที่ 1: จัดการล้างข้อมูลสถิติ (Stats Junk) ---
     if ( isset($_POST['clean_stats']) ) {
         check_admin_referer('wcc_clean_stats');
 
@@ -48,6 +47,9 @@ function sunny_wordpress_optimizer_page() {
         $wpdb->query("OPTIMIZE TABLE $table_relationships");
 
         echo '<div class="updated"><p>กวาดขยะสถิติออกไปได้ <strong>' . number_format($deleted) . '</strong> แถว และคืนพื้นที่ฐานข้อมูลเรียบร้อย!</p></div>';
+        
+        //ลบแคช
+        delete_transient('sunny_wordpress_optimizer_health_stats');    
     }
 
     if ( isset($_POST['clean_pages_stats']) ) {
@@ -64,10 +66,13 @@ function sunny_wordpress_optimizer_page() {
             )
         );
 
-        // Optimize ตาราง (ตัวนี้แหละที่อาจจะใช้เวลาหน่อย ถ้าตารางใหญ่มาก)
+        // Optimize ตาราง
         $wpdb->query("OPTIMIZE TABLE $table_pages_visitor");
 
         echo '<div class="updated"><p>กวาดสถิติเก่าก่อนปี ' . date('Y') . ' ออกไปได้ <strong>' . number_format($deleted) . '</strong> แถวเรียบร้อยแล้วครับพี่!</p></div>';
+
+        //ลบแคช
+        delete_transient('sunny_wordpress_optimizer_health_stats');
     }
     ?>
     <div class="stats-cleaner-section" style="background: #fff; padding: 20px; border-radius: 10px; margin-top: 20px;">
@@ -75,7 +80,6 @@ function sunny_wordpress_optimizer_page() {
         <p>ลบข้อมูลความสัมพันธ์ในตาราง <code><?= $table_relationships ?></code> ที่ไม่มีข้อมูลผู้เข้าชมตัวจริง</p>
         
         <?php
-        // เช็คจำนวนขยะก่อนลบ
         $junk_count = $wpdb->get_var(
             "SELECT COUNT(*) FROM $table_relationships r
              LEFT JOIN $table_visitor v ON r.visitor_id = v.ID
@@ -127,6 +131,9 @@ function sunny_wordpress_optimizer_page() {
             $count++;
         }
         echo '<div class="updated"><p>กำจัดสแปมออกไปแล้ว <strong>' . $count . '</strong> บัญชี!</p></div>';
+
+        //ลบแคช
+        delete_transient('sunny_wordpress_optimizer_health_stats');
     }
 
     $found_users = array();
@@ -232,32 +239,29 @@ function sunny_optimizer_settings_init() {
 //Widget
 add_action('wp_dashboard_setup', function() {
     wp_add_dashboard_widget(
-        'wgc_db_cleanup_widget', 
+        'db_cleanup_widget', 
         'สรุปขยะสะสมใน Database', 
-        'wgc_render_db_cleanup_widget'
+        'render_db_cleanup_widget'
     );
 });
 
-function wgc_render_db_cleanup_widget() {
+function render_db_cleanup_widget() {
 
-    $cached_data = get_transient('wgc_db_health_stats');
+    $cached_data = get_transient('sunny_wordpress_optimizer_health_stats');
 
     if ( false === $cached_data ) {
         global $wpdb;
     
-        // กำหนดชื่อตาราง (ปรับให้ตรงกับที่พี่ใช้นะครับ)
+        $table_relationships = $wpdb->prefix . 'statistics_visitor_relationships';
         $table_visitor = $wpdb->prefix . 'statistics_visitor';
-        $table_relationships = $wpdb->prefix . 'statistics_relationships';
         $table_pages_visitor = $wpdb->prefix . 'statistics_pages';
 
-        // 1. เช็คขยะความสัมพันธ์ (Orphaned Data)
-        $junk_rel_count = $wpdb->get_var( "
-            SELECT COUNT(*) FROM $table_relationships r
-            LEFT JOIN $table_visitor v ON r.visitor_id = v.ID
-            WHERE v.ID IS NULL
-        " );
+        $junk_rel_count = $wpdb->get_var(
+            "SELECT COUNT(*) FROM $table_relationships r
+             LEFT JOIN $table_visitor v ON r.visitor_id = v.ID
+             WHERE v.ID IS NULL"
+        );
 
-        // 2. เช็คสถิติเก่าค้างปี
         $current_year_start = date('Y') . '-01-01';
         $junk_visit_count = $wpdb->get_var( $wpdb->prepare(
             "SELECT COUNT(*) FROM $table_pages_visitor WHERE date < %s", 
@@ -270,8 +274,8 @@ function wgc_render_db_cleanup_widget() {
             'time' => current_time('mysql')
         ];
 
-        // 3. บันทึกเก็บไว้ใน Cache 12 ชั่วโมง
-        set_transient('wgc_db_health_stats', $cached_data, 12 * HOUR_IN_SECONDS);
+        // บันทึกเก็บไว้ใน Cache 1 ชั่วโมง
+        set_transient('sunny_wordpress_optimizer_health_stats', $cached_data, 1 * HOUR_IN_SECONDS);
     }
 
     $total_junk = $cached_data['rel'] + $cached_data['visit'];
@@ -301,7 +305,7 @@ function wgc_render_db_cleanup_widget() {
         <span style="font-size: 16px; font-weight: bold;">รวมขยะสะสม: <?=number_format($total_junk);?> แถว</span>
         </div>
         
-        <a href="<?=admin_url('admin.php?page=spam-cleaner');?>" class="button button-primary" style="width: 100%; text-align: center; height: 36px; line-height: 34px;">เริ่มทำความสะอาด !</a>;
+        <a href="<?=admin_url('admin.php?page=wordpress-optimizer');?>" class="button button-primary" style="width: 100%; text-align: center; height: 36px; line-height: 34px;">เริ่มทำความสะอาด !</a>;
     <?php } else { ?>
         <div style="background: #26AE60; color: #fff; padding: 10px; border-radius: 4px; text-align: center;">
             <strong>ฐานข้อมูลสะอาดกริบ !</strong>
@@ -318,10 +322,8 @@ function wgc_render_db_cleanup_widget() {
  * Block External API Requests to WordPress.org for WooCommerce Info
  */
 add_filter( 'pre_http_request', function( $pre, $args, $url ) {
-    // 1. เช็คว่าอยู่ในหน้า Admin ที่ต้องใช้ API หรือเปล่า?
     if ( is_admin() ) {
         global $pagenow;
-        // รายชื่อหน้าที่ "ห้ามบล็อก" เพราะต้องใช้เชื่อมต่อ WordPress.org
         $allowed_pages = array(
             'plugin-install.php', 
             'update-core.php', 
@@ -334,7 +336,6 @@ add_filter( 'pre_http_request', function( $pre, $args, $url ) {
         }
     }
 
-    // 2. ถ้าไม่ใช่หน้าด้านบน และมีการยิงไปหา api.wordpress.org หรือ woocommerce.json ให้บล็อกทันที
     if ( strpos( $url, 'api.wordpress.org' ) !== false || strpos( $url, 'woocommerce.json' ) !== false ) {
         return new WP_Error( 'http_request_failed', 'Blocked for speed optimization!' );
     }
